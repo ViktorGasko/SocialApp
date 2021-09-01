@@ -124,11 +124,6 @@ export default {
       .then((doc) => {
         this.userName = doc.data().displayName;
         this.userPhoto = doc.data().photoUrl;
-        /*if (this.mainData.photoUrl) {
-          let collectionRef = projectStorage.ref(
-            `profilePics/${this.$props.id}/profilePic`
-          );
-        }*/
       });
     this.refVotes
       .doc(this.$props.loggedUserId)
@@ -186,13 +181,6 @@ export default {
     },
   },
   methods: {
-    startTextArea() {
-      const el = document.getElementById("textarea-2");
-      const textareaWrap = document.getElementById("textarea-body-2");
-      el.style.height = "39px";
-      textareaWrap.style.height = "39px";
-      el.style.overflowY = "hidden";
-    },
     textAreaHeight() {
       const el = document.getElementById("textarea-2");
       const div = document.getElementById("textarea-div-2");
@@ -311,12 +299,7 @@ export default {
     sendComment() {
       if (this.comment) {
         let commentId;
-        projectFirestore
-          .collection("user")
-          .doc(this.$props.userId)
-          .collection("posts")
-          .doc(this.$props.postId)
-          .collection("comments")
+        this.refComments
           .add({
             postId: this.$props.postId,
             userId: this.$props.loggedUserId,

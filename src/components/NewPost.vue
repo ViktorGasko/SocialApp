@@ -63,18 +63,12 @@ export default {
       this.pictures.splice(index, 1);
     },
     checkPicture(e) {
-      const file = e.target.files[0];
-      if (file && (file.type === "image/png" || file.type === "image/jpeg")) {
-        Object.defineProperty(file, "name", {
-          writable: true,
-          value: "profilePic",
-        });
-        this.pictures.push(file);
-        this.picturesUrl.push(URL.createObjectURL(file));
-      } else if (file) {
-        console.log("Choose file of type .png or .jpeg");
-        this.pictures = [];
-      }
+      this.$store.dispatch("checkPicture", e.target.files[0]).then((res) => {
+        if (res.file !== null) {
+          this.pictures.push(res.file);
+          this.picturesUrl.push(res.previewPicUrl);
+        }
+      });
     },
     async newPost() {
       if (this.pictures.length > 0 || this.text.length > 0) {
@@ -83,7 +77,7 @@ export default {
           let path = "";
           if (this.pictures.length > 0) {
             if (this.$props.groupId === "") {
-              path = `files/${this.$props.userId}/posts/${v1()}`; //.${/[^.]*$/.exec(payload.picture.name)[0]};
+              path = `files/${this.$props.userId}/posts/${v1()}`;
             } else {
               path = `files/${this.$props.groupId}/posts/${v1()}`;
             }
@@ -103,19 +97,19 @@ export default {
                 text: this.text,
                 url: url,
               })
-              .then((response) => {
+              .then((postResponse) => {
                 projectFirestore
                   .collection("user")
                   .doc(this.$props.userId)
                   .collection("followers")
                   .get()
-                  .then((res) => {
-                    res.forEach((doc) => {
+                  .then((followersResponse) => {
+                    followersResponse.forEach((follower) => {
                       projectFirestore
                         .collection("user")
-                        .doc(doc.id)
+                        .doc(follower.id)
                         .collection("newsFeed")
-                        .doc(response.id)
+                        .doc(postResponse.id)
                         .set({
                           group: false,
                           id: this.$props.userId,
@@ -127,7 +121,7 @@ export default {
                   .collection("user")
                   .doc(this.$props.userId)
                   .collection("newsFeed")
-                  .doc(response.id)
+                  .doc(postResponse.id)
                   .set({
                     group: false,
                     id: this.$props.userId,
@@ -135,7 +129,7 @@ export default {
                   });
                 this.$emit("newPost", {
                   userId: this.$props.userId,
-                  postId: response.id,
+                  postId: postResponse.id,
                   timestamp: { seconds: Date.now() / 1000 },
                   text: this.text,
                   url: url,
@@ -152,25 +146,33 @@ export default {
                 text: this.text,
                 url: url,
               })
-              .then(() => {
+              .then((postResponse) => {
                 projectFirestore
                   .collection("groups")
                   .doc(this.$props.groupId)
                   .collection("members")
                   .get()
-                  .then((res) => {
-                    res.forEach((doc) =>
+                  .then((membersResponse) => {
+                    membersResponse.forEach((member) => {
                       projectFirestore
                         .collection("user")
-                        .doc(doc.id)
+                        .doc(member.id)
                         .collection("newsFeed")
+                        .doc(postResponse.id)
                         .set({
                           id: this.$props.groupId,
                           group: true,
                           timestamp: time,
-                        })
-                    );
+                        });
+                    });
                   });
+                this.$emit("newPost", {
+                  userId: this.$props.userId,
+                  postId: postResponse.id,
+                  timestamp: { seconds: Date.now() / 1000 },
+                  text: this.text,
+                  url: url,
+                });
               });
           }
         } catch (err) {
@@ -180,13 +182,6 @@ export default {
         this.pictures = [];
         this.picturesUrl = [];
       }
-    },
-    startTextArea() {
-      const el = document.getElementById("textarea");
-      const textareaWrap = document.getElementById("textarea-body");
-      el.style.height = "39px";
-      textareaWrap.style.height = "39px";
-      el.style.overflowY = "hidden";
     },
     textAreaHeight() {
       const el = document.getElementById("textarea");
@@ -207,16 +202,6 @@ export default {
         el.style.overflowY = "auto";
       }
     },
-    // newLine() {
-    //   const textareaWrap = document.getElementById("textarea-body");
-    //   const el = document.getElementById("textarea-div");
-    //   const divInt = getComputedStyle(el).height.match(/\d+/)[0];
-    //   if (parseInt(divInt) < 130) {
-    //     el.style.height = parseInt(divInt) + 19 + "px";
-    //     textareaWrap.style.height = el.style.height;
-    //   }
-    //   this.textAreaHeight();
-    // },
   },
 };
 </script>

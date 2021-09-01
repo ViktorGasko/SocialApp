@@ -22,7 +22,12 @@
         </button>
       </div>
     </div>
-    <post-status :groupId="id" :userId="user.uid" v-if="visibleNewPost" />
+    <new-post
+      :groupId="id"
+      :userId="user.uid"
+      v-if="visibleNewPost"
+      @newPost="addPost"
+    />
     <!-- mainData zatial pouzijem na posielanie komentaru... ale casom to asi bude potrebne zmenit-->
     <div v-if="visiblePosts">
       <post
@@ -42,18 +47,13 @@
 </template>
 
 <script>
-// import { projectStorage } from "../firebase/config.js";
-// import { projectFirestore } from "../firebase/config";
-// import { timestamp } from "@/firebase/config";
-import PostStatus from "../components/NewPost.vue";
+import NewPost from "../components/NewPost.vue";
 import { projectFirestore } from "../firebase/config";
 import Post from "../components/Post.vue";
 
-//= useCollection("playlists");
-// db.collection('events').orderBy("timestamp").limit(n)
 export default {
   components: {
-    PostStatus,
+    NewPost,
     Post,
   },
   props: {
@@ -87,7 +87,7 @@ export default {
       );
     },
   },
-  created() {
+  async created() {
     projectFirestore
       .collection("groups")
       .doc(this.$props.id)
@@ -125,21 +125,13 @@ export default {
             }
           });
       });
-    projectFirestore
-      .collection("groups")
-      .doc(this.$props.id)
-      .collection("posts")
-      .orderBy("timestamp")
-      .limit(10)
-      .get()
-      .then((post) => {
-        for (var i = post.docs.length - 1; i >= 0; i--) {
-          this.groupPosts.push({
-            ...post.docs[i].data(),
-            postId: post.docs[i].id,
-          });
-        }
-      });
+    await this.$store
+      .dispatch("loadDefault", {
+        type: "groups",
+        id: this.$props.id,
+      })
+      .then((posts) => (this.groupPosts = [...posts]));
+    window.addEventListener("scroll", this.checkPosition);
   },
   methods: {
     groupSettings() {
@@ -150,12 +142,12 @@ export default {
       });
     },
     showProfilePic() {
-      this.showProfilePicture = true;
-      this.$router.push({
-        name: "Picture",
-        params: { picId: this.$props.id },
-        query: { type: "profilePic" },
-      });
+      // this.showProfilePicture = true;
+      // this.$router.push({
+      //   name: "Picture",
+      //   params: { picId: this.$props.id },
+      //   query: { type: "profilePic" },
+      // });
     },
     handleFollow() {
       if (this.followButton === "Follow") {
@@ -191,6 +183,31 @@ export default {
           .delete();
         this.followButton = "Follow";
       }
+    },
+    addPost(post) {
+      this.groupPosts.unshift(post);
+    },
+    async loadPosts() {
+      const timestamp = this.groupPosts[this.groupPosts.length - 1].timestamp;
+      await this.$store
+        .dispatch("loadAdditional", {
+          type: "groups",
+          id: this.$props.id,
+          timestamp: timestamp,
+        })
+        .then((posts) => (this.groupPosts = [...this.groupPosts, ...posts]));
+    },
+    checkPosition() {
+      if (
+        window.innerHeight + window.scrollY >=
+          document.scrollingElement.scrollHeight &&
+        this.groupPosts.length
+      ) {
+        this.loadPosts();
+      }
+    },
+    unmounted() {
+      window.removeEventListener("scroll", this.checkPosition);
     },
     handleJoin() {
       // if (this.addContactButton === "Add Contact") {

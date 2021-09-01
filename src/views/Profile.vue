@@ -37,14 +37,11 @@
 </template>
 
 <script>
-// import { projectStorage } from "../firebase/config.js";
 import { projectFirestore } from "../firebase/config";
 import { timestamp } from "@/firebase/config";
 import NewPost from "../components/NewPost.vue";
 import Post from "../components/Post.vue";
 
-//= useCollection("playlists");
-// db.collection('events').orderBy("timestamp").limit(n)
 export default {
   components: {
     NewPost,
@@ -58,7 +55,6 @@ export default {
   },
   data() {
     return {
-      mainData: null,
       showProfilePicture: false,
       user: { displayName: "", photoUrl: "" },
       loggedUser: this.$store.getters.getUser,
@@ -84,7 +80,10 @@ export default {
       });
     },
     showProfilePic() {
-      if (!this.mainData.photoUrl) {
+      if (
+        this.user.photoUrl ===
+        "https://firebasestorage.googleapis.com/v0/b/vue-http-demo-46312.appspot.com/o/files%2FDefaultProfilePic%2Fdefault.png?alt=media&token=13cec218-34f9-4e0b-b2a2-573cfc576bc5"
+      ) {
         return;
       }
       this.showProfilePicture = true;
@@ -95,89 +94,58 @@ export default {
       });
     },
     handleFollow() {
+      const loggedUserRef = projectFirestore
+        .collection("user")
+        .doc(this.loggedUser.uid)
+        .collection("follows")
+        .doc(this.$props.id);
+      const profileUserRef = projectFirestore
+        .collection("user")
+        .doc(this.$props.id)
+        .collection("followers")
+        .doc(this.loggedUser.uid);
       if (this.followButton === "Follow") {
-        projectFirestore
-          .collection("user")
-          .doc(this.loggedUser.uid)
-          .collection("follows")
-          .doc(this.$props.id)
-          .set({
-            follow: true,
-          });
-        projectFirestore
-          .collection("user")
-          .doc(this.$props.id)
-          .collection("followers")
-          .doc(this.loggedUser.uid)
-          .set({
-            follow: true,
-          });
-
+        loggedUserRef.set({
+          follow: true,
+        });
+        profileUserRef.set({
+          follow: true,
+        });
         this.followButton = "Unfollow";
       } else {
-        projectFirestore
-          .collection("user")
-          .doc(this.loggedUser.uid)
-          .collection("follows")
-          .doc(this.$props.id)
-          .delete();
-        projectFirestore
-          .collection("user")
-          .doc(this.$props.id)
-          .collection("followers")
-          .doc(this.loggedUser.uid)
-          .delete();
+        loggedUserRef.delete();
+        profileUserRef.delete();
         this.followButton = "Follow";
       }
     },
     handleContact() {
+      const loggedUserRef = projectFirestore
+        .collection("user")
+        .doc(this.loggedUser.uid)
+        .collection("contact")
+        .doc(this.$props.id);
+      const profileUserRef = projectFirestore
+        .collection("user")
+        .doc(this.$props.id)
+        .collection("contactRequests")
+        .doc(this.loggedUser.uid);
       if (this.addContactButton === "Add Contact") {
-        projectFirestore
-          .collection("user")
-          .doc(this.loggedUser.uid)
-          .collection("contact")
-          .doc(this.$props.id)
-          .set({
-            contact: "pending",
-          });
-        projectFirestore
-          .collection("user")
-          .doc(this.$props.id)
-          .collection("contactRequests")
-          .doc(this.loggedUser.uid)
-          .set({
-            timestamp: timestamp(),
-          });
+        loggedUserRef.set({
+          contact: "pending",
+        });
+        profileUserRef.set({
+          timestamp: timestamp(),
+        });
         this.addContactButton = "Pending";
       } else {
-        projectFirestore
-          .collection("user")
-          .doc(this.loggedUser.uid)
-          .collection("contact")
-          .doc(this.$props.id)
-          .delete();
-        if (this.addContactButton === "Pending") {
-          projectFirestore
-            .collection("user")
-            .doc(this.$props.id)
-            .collection("contactRequests")
-            .doc(this.loggedUser.uid)
-            .delete();
-        } else {
-          projectFirestore
-            .collection("user")
-            .doc(this.$props.id)
-            .collection("contact")
-            .doc(this.loggedUser.uid)
-            .delete();
-        }
+        loggedUserRef.delete();
+        profileUserRef.delete();
       }
     },
     addPost(post) {
       this.userPosts.unshift(post);
     },
-    onEnter() {
-      this.mainData = null;
+    async onEnter() {
       this.user = { displayName: "", photoUrl: "" };
       this.userPosts = [];
       projectFirestore
@@ -221,39 +189,24 @@ export default {
       const ref = projectFirestore.collection("user").doc(this.$props.id);
       ref.get().then((doc) => {
         this.user = doc.data();
-        /*if (this.mainData.photoUrl) {
-          let collectionRef = projectStorage.ref(
-            `profilePics/${this.$props.id}/profilePic`
-          );
-        }*/
       });
+      await this.$store
+        .dispatch("loadDefault", {
+          type: "user",
+          id: this.$props.id,
+        })
+        .then((posts) => (this.userPosts = [...posts]));
       window.addEventListener("scroll", this.checkPosition);
-      ref
-        .collection("posts")
-        .orderBy("timestamp", "desc")
-        .limit(10)
-        .get()
-        .then((posts) => {
-          posts.forEach((post) => {
-            this.userPosts.push({ ...post.data(), postId: post.id });
-          });
-        });
     },
-    loadPosts() {
+    async loadPosts() {
       const timestamp = this.userPosts[this.userPosts.length - 1].timestamp;
-      projectFirestore
-        .collection("user")
-        .doc(this.$props.id)
-        .collection("posts")
-        .where("timestamp", "<", timestamp)
-        .orderBy("timestamp", "desc")
-        .limit(10)
-        .get()
-        .then((posts) => {
-          posts.forEach((post) => {
-            this.userPosts.push({ ...post.data(), postId: post.id });
-          });
-        });
+      await this.$store
+        .dispatch("loadAdditional", {
+          type: "user",
+          id: this.$props.id,
+          timestamp: timestamp,
+        })
+        .then((posts) => (this.userPosts = [...this.userPosts, ...posts]));
     },
     checkPosition() {
       if (

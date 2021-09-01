@@ -6,7 +6,7 @@ export default {
   mutations: {},
   actions: {
     async addProfilePic(_context, payload) {
-      const filePath = `files/${payload.user.uid}/profilePic`; //.${/[^.]*$/.exec(payload.picture.name)[0]};
+      const filePath = `files/${payload.user.uid}/profilePic`;
       const storageRef = projectStorage.ref(filePath);
       try {
         const res = await storageRef.put(payload.picture);
@@ -24,7 +24,6 @@ export default {
       }
     },
     async removeProfilePicture(_context, payload) {
-      console.log(payload.user.photoURL);
       let storageRef = await projectStorage.ref(
         `files/${payload.user.uid}/profilePic`
       );

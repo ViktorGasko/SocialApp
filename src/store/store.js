@@ -1,13 +1,14 @@
 import { createStore } from "vuex";
 import User from "./user.js";
-import Search from "./search.js";
-import UserDetails from "./userDetails.js";
+import profilePicture from "./profilePicture.js";
+import checkPicture from "./checkPicture.js";
+import loadPosts from "./loadPosts.js";
 
 const store = createStore({
   state: {},
   mutations: {},
   actions: {},
-  modules: { User, UserDetails, Search },
+  modules: { User, profilePicture, checkPicture, loadPosts },
 });
 
 export default store;

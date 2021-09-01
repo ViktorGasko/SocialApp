@@ -68,17 +68,10 @@ export default {
       });
     },
     checkPicture(e) {
-      const file = e.target.files[0];
-      if (file && (file.type === "image/png" || file.type === "image/jpeg")) {
-        Object.defineProperty(file, "name", {
-          writable: true,
-          value: "profilePic",
-        });
-        this.picture = file;
-      } else if (file) {
-        console.log("Choose file of type .png or .jpeg");
-        this.picture = null;
-      }
+      this.$store.dispatch("checkPicture", e.target.files[0]).then((res) => {
+        this.picture = res.file;
+        // this.previewPicUrl = res.previewPicUrl;
+      });
     },
   },
 };
