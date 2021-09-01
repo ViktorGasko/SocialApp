@@ -24,6 +24,7 @@
     <post
       v-for="post in userPosts"
       :key="post.postId"
+      :groupId="''"
       :photo="post.url"
       :text="post.text"
       :userId="post.userId"

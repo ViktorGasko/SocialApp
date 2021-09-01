@@ -38,24 +38,27 @@
 <script>
 import { projectFirestore, FieldValue } from "../firebase/config";
 export default {
-  props: ["comment", "postUserId", "loggedUserId"],
+  props: ["comment", "postUserId", "loggedUserId", "groupId"],
   data() {
     return {
       total: this.$props.comment.total,
       voted: null,
       userId: this.$store.getters.getUser.uid,
-      refUser: projectFirestore
-        .collection("user")
-        .doc(this.$props.comment.userId)
-        .collection("comments")
-        .doc(this.$props.comment.commentId),
-      refPost: projectFirestore
-        .collection("user")
-        .doc(this.$props.postUserId)
-        .collection("posts")
-        .doc(this.$props.comment.postId)
-        .collection("comments")
-        .doc(this.$props.comment.commentId),
+      refPost: this.$props.groupId
+        ? projectFirestore
+            .collection("groups")
+            .doc(this.$props.groupId)
+            .collection("posts")
+            .doc(this.$props.comment.postId)
+            .collection("comments")
+            .doc(this.$props.comment.commentId)
+        : projectFirestore
+            .collection("user")
+            .doc(this.$props.postUserId)
+            .collection("posts")
+            .doc(this.$props.comment.postId)
+            .collection("comments")
+            .doc(this.$props.comment.commentId),
     };
   },
   computed: {
@@ -88,13 +91,7 @@ export default {
     },
   },
   created() {
-    projectFirestore
-      .collection("user")
-      .doc(this.$props.postUserId)
-      .collection("posts")
-      .doc(this.$props.comment.postId)
-      .collection("comments")
-      .doc(this.$props.comment.commentId)
+    this.refPost
       .collection("votes")
       .doc(this.$props.loggedUserId)
       .get()

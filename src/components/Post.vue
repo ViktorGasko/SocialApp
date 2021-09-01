@@ -58,6 +58,7 @@
           :key="comment.commentId"
           :comment="comment"
           :postUserId="userId"
+          :groupId="groupId"
           :loggedUserId="loggedUserId"
         />
         <button
@@ -83,6 +84,7 @@ export default {
     Comment,
   },
   props: [
+    "groupId",
     "text",
     "photo",
     "timestamp",
@@ -102,18 +104,32 @@ export default {
       voted: null,
       total: null,
       showLoadMoreComments: false,
-      refVotes: projectFirestore
-        .collection("user")
-        .doc(this.$props.userId)
-        .collection("posts")
-        .doc(this.$props.postId)
-        .collection("votes"),
-      refComments: projectFirestore
-        .collection("user")
-        .doc(this.$props.userId)
-        .collection("posts")
-        .doc(this.$props.postId)
-        .collection("comments"),
+      refVotes: this.$props.groupId
+        ? projectFirestore
+            .collection("groups")
+            .doc(this.$props.groupId)
+            .collection("posts")
+            .doc(this.$props.postId)
+            .collection("votes")
+        : projectFirestore
+            .collection("user")
+            .doc(this.$props.userId)
+            .collection("posts")
+            .doc(this.$props.postId)
+            .collection("votes"),
+      refComments: this.$props.groupId
+        ? projectFirestore
+            .collection("groups")
+            .doc(this.$props.groupId)
+            .collection("posts")
+            .doc(this.$props.postId)
+            .collection("comments")
+        : projectFirestore
+            .collection("user")
+            .doc(this.$props.userId)
+            .collection("posts")
+            .doc(this.$props.postId)
+            .collection("comments"),
     };
   },
   created() {
@@ -309,18 +325,6 @@ export default {
           })
           .then((res) => {
             commentId = res.id;
-            projectFirestore
-              .collection("user")
-              .doc(this.$store.getters.getUser.uid)
-              .collection("comments")
-              .doc(commentId)
-              .set({
-                postId: this.$props.postId,
-                commentId: commentId,
-                postOwnerId: this.$props.userId,
-                timestamp: timestamp(),
-                text: this.comment,
-              });
             this.comments.unshift({
               commentId: commentId,
               postId: this.$props.postId,

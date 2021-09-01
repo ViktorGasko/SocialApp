@@ -6,6 +6,7 @@
       :key="post.postId"
       :photo="post.url"
       :text="post.text"
+      :groupId="post.groupId"
       :userId="post.userId"
       :postId="post.postId"
       :timestamp="post.timestamp"
@@ -54,7 +55,19 @@ export default {
             .doc(el.id)
             .get()
             .then((post) => {
-              this.newPosts.push({ ...post.data(), postId: post.id });
+              if (el.data().group) {
+                this.newPosts.push({
+                  ...post.data(),
+                  postId: post.id,
+                  groupId: el.data().id,
+                });
+              } else {
+                this.newPosts.push({
+                  ...post.data(),
+                  postId: post.id,
+                  groupId: "",
+                });
+              }
             });
         });
       });

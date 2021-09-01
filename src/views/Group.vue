@@ -35,6 +35,7 @@
         :key="post.id"
         :photo="post.url"
         :text="post.text"
+        :groupId="id"
         :userId="post.userId"
         :postId="post.postId"
         :timestamp="post.timestamp"
