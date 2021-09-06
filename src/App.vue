@@ -1,6 +1,6 @@
 <template>
   <div class="content-1">
-    <nav-bar v-if="getUser && loginPage" :user="getUser"></nav-bar>
+    <nav-bar v-if="loginPage" :user="getUser"></nav-bar>
     <router-view></router-view>
   </div>
 </template>

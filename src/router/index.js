@@ -8,6 +8,7 @@ import Settings from "../views/Settings.vue";
 import Results from "../views/Results.vue";
 import GroupSettings from "../views/GroupSettings.vue";
 import MyGroups from "../views/MyGroups.vue";
+import NotFound from "../views/NotFound.vue";
 
 import Picture from "../views/Picture.vue";
 
@@ -22,19 +23,35 @@ const requireAuth = (_to, _from, next) => {
     next();
   }
 };
-const requireMembership = (_to, _from, next) => {
-  console.log("b");
+const requireMembership = (to, _from, next) => {
   projectFirestore
-    .collection("userPublic")
+    .collection("user")
     .doc(projectAuth.currentUser.uid)
     .collection("groups")
-    .doc(_to.params.id)
+    .doc(to.params.id)
     .get()
     .then((res) => {
       if (res.exists) {
         next();
       } else {
-        next({ name: "Group" });
+        next({ name: "Group", params: { id: to.params.id } });
+      }
+    });
+};
+const pathExists = (to, _from, next) => {
+  let collection = "user";
+  if (to.name === "Group") {
+    collection = "groups";
+  }
+  projectFirestore
+    .collection(collection)
+    .doc(to.params.id)
+    .get()
+    .then((doc) => {
+      if (doc.exists) {
+        next();
+      } else {
+        next({ name: "Not-found" });
       }
     });
 };
@@ -55,12 +72,14 @@ const routes = [
         name: "Profile",
         component: Profile,
         props: true,
+        beforeEnter: pathExists,
       },
       {
         path: "group/:id",
         name: "Group",
         component: Group,
         props: true,
+        beforeEnter: pathExists,
       },
       {
         path: "group/:id/groupsettings",
@@ -73,22 +92,19 @@ const routes = [
         path: "settings",
         name: "Settings",
         component: Settings,
-        beforeEnter: requireAuth,
       },
       {
         path: "results",
         name: "Results",
         component: Results,
-        beforeEnter: requireAuth,
       },
       {
         path: "groups",
         name: "MyGroups",
         component: MyGroups,
-        beforeEnter: requireAuth,
       },
       {
-        path: ":picId",
+        path: "picture/:picId",
         name: "Picture",
         component: Picture,
         props: true,
@@ -100,44 +116,11 @@ const routes = [
     name: "Login",
     component: Login,
   },
-  // {
-  //   path: "/profile/:id",
-  //   name: "Profile",
-  //   component: Profile,
-  //   props: true,
-  // },
-  // {
-  //   path: "/group/:id",
-  //   name: "Group",
-  //   component: Group,
-  //   props: true,
-  // },
-  // {
-  //   path: "/group/:id/groupsettings",
-  //   name: "GroupSettings",
-  //   props: true,
-  //   component: GroupSettings,
-  //   beforeEnter: requireMembership,
-  // },
-
-  // {
-  //   path: "/settings",
-  //   name: "Settings",
-  //   component: Settings,
-  //   beforeEnter: requireAuth,
-  // },
-  // {
-  //   path: "/groups",
-  //   name: "MyGroups",
-  //   component: MyGroups,
-  //   beforeEnter: requireAuth,
-  // },
-  // {
-  //   path: "/:picId",
-  //   name: "Picture",
-  //   component: Picture,
-  //   props: true,
-  // },
+  {
+    name: "Not-found",
+    path: "/:pathMatch(.*)*",
+    component: NotFound,
+  },
 ];
 
 const router = createRouter({
